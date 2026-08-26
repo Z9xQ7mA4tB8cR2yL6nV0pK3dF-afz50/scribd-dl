@@ -23,10 +23,21 @@
         .btn .sp{width:16px;height:16px;border:2px solid rgba(255,255,255,.3);border-top-color:white;border-radius:50%;animation:sp .7s linear infinite;display:none}
         .btn.loading .sp{display:block}.btn.loading .lb{display:none}
         @keyframes sp{to{transform:rotate(360deg)}}
-        .prog{margin-top:20px;display:none}.prog.show{display:block}
-        .bar-w{background:#27272a;border-radius:6px;height:6px;overflow:hidden}
+        .steps{margin-top:20px;display:none}.steps.show{display:block}
+        .st{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid #27272a;font-size:13px;color:#52525b}
+        .st:last-child{border-bottom:none}
+        .st.active{color:#e4e4e7}
+        .st.done{color:#4ade80}
+        .st.error{color:#f87171}
+        .st-icon{width:20px;height:20px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;flex-shrink:0;background:#27272a;color:#52525b}
+        .st.active .st-icon{background:rgba(139,92,246,.2);color:#8b5cf6;animation:pulse 1.5s infinite}
+        .st.done .st-icon{background:rgba(34,197,94,.2);color:#4ade80}
+        .st.error .st-icon{background:rgba(239,68,68,.2);color:#f87171}
+        .st-label{flex:1}
+        .st-sub{font-size:11px;color:#71717a;margin-top:1px}
+        @keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}}
+        .bar-w{background:#27272a;border-radius:6px;height:6px;overflow:hidden;margin-bottom:16px}
         .bar{height:100%;background:linear-gradient(90deg,#8b5cf6,#a78bfa);border-radius:6px;width:0%;transition:width .3s}
-        .p-txt{margin-top:8px;font-size:13px;color:#a1a1aa;text-align:center}
         .err{margin-top:16px;background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.2);border-radius:10px;padding:14px;display:none;font-size:13px;color:#f87171}
         .err.show{display:block}
         .ok{margin-top:16px;background:rgba(34,197,94,.08);border:1px solid rgba(34,197,94,.2);border-radius:10px;padding:18px;display:none;text-align:center}
@@ -52,9 +63,15 @@
                 <div class="sp"></div>
                 <span class="lb">ডাউনলোড করুন</span>
             </button>
-            <div class="prog" id="prog">
+            <div class="steps" id="steps">
                 <div class="bar-w"><div class="bar" id="bar"></div></div>
-                <div class="p-txt" id="ptxt"></div>
+                <div class="st" data-step="opening"><div class="st-icon">&#9675;</div><div class="st-label"><div>পেজ খোলা হচ্ছে</div><div class="st-sub" id="sub-opening"></div></div></div>
+                <div class="st" data-step="reading"><div class="st-icon">&#9675;</div><div class="st-label"><div>ডকুমেন্ট পড়া হচ্ছে</div><div class="st-sub" id="sub-reading"></div></div></div>
+                <div class="st" data-step="found"><div class="st-icon">&#9675;</div><div class="st-label"><div>ডকুমেন্ট পাওয়া গেছে</div><div class="st-sub" id="sub-found"></div></div></div>
+                <div class="st" data-step="scanning"><div class="st-icon">&#9675;</div><div class="st-label"><div>পেজ স্ক্যান করা হচ্ছে</div><div class="st-sub" id="sub-scanning"></div></div></div>
+                <div class="st" data-step="pdf_start"><div class="st-icon">&#9675;</div><div class="st-label"><div>PDF তৈরি শুরু</div><div class="st-sub" id="sub-pdf_start"></div></div></div>
+                <div class="st" data-step="pdf_progress"><div class="st-icon">&#9675;</div><div class="st-label"><div>PDF তৈরি হচ্ছে</div><div class="st-sub" id="sub-pdf_progress"></div></div></div>
+                <div class="st" data-step="done"><div class="st-icon">&#9675;</div><div class="st-label"><div>সম্পন্ন</div><div class="st-sub" id="sub-done"></div></div></div>
             </div>
             <div class="err" id="err"></div>
             <div class="ok" id="ok">
@@ -68,35 +85,63 @@
     </div>
     <script>
         const BASE=(location.pathname.replace(/\/+$/,'/')||'/');
-        const urlEl=document.getElementById('url'),btn=document.getElementById('btn'),prog=document.getElementById('prog'),bar=document.getElementById('bar'),ptxt=document.getElementById('ptxt'),err=document.getElementById('err'),ok=document.getElementById('ok'),meta=document.getElementById('meta'),link=document.getElementById('link');
+        const urlEl=document.getElementById('url'),btn=document.getElementById('btn'),stepsEl=document.getElementById('steps'),bar=document.getElementById('bar'),err=document.getElementById('err'),ok=document.getElementById('ok'),meta=document.getElementById('meta'),link=document.getElementById('link');
+        const STEPS=['opening','reading','found','scanning','pdf_start','pdf_progress','done'];
         urlEl.addEventListener('keydown',e=>{if(e.key==='Enter')go()});
-        function reset(){btn.classList.remove('loading');btn.disabled=false;prog.classList.remove('show');err.classList.remove('show');ok.classList.remove('show');bar.style.width='0%';ptxt.textContent=''}
+        function reset(){
+            btn.classList.remove('loading');btn.disabled=false;
+            stepsEl.classList.remove('show');err.classList.remove('show');ok.classList.remove('show');
+            bar.style.width='0%';
+            STEPS.forEach(s=>{
+                const el=document.querySelector('[data-step="'+s+'"]');
+                el.className='st';
+                el.querySelector('.st-icon').innerHTML='&#9675;';
+                const sub=document.getElementById('sub-'+s);
+                if(sub)sub.textContent='';
+            });
+        }
+        function markStep(name,status,text){
+            const el=document.querySelector('[data-step="'+name+'"]');
+            if(!el)return;
+            el.className='st '+(status==='done'?'done':status==='active'?'active':'');
+            el.querySelector('.st-icon').innerHTML=status==='done'?'&#10003;':status==='error'?'&#10007;':'&#9675;';
+            const sub=document.getElementById('sub-'+name);
+            if(sub&&text)sub.textContent=text;
+        }
         async function go(){
             const url=urlEl.value.trim();
             if(!url){err.textContent='URL দিন';err.classList.add('show');return}
             if(!url.includes('scribd.com')){err.textContent='Scribd URL দিন';err.classList.add('show');return}
-            reset();btn.classList.add('loading');btn.disabled=true;prog.classList.add('show');ptxt.textContent='শুরু হচ্ছে...';
+            reset();btn.classList.add('loading');btn.disabled=true;stepsEl.classList.add('show');
+            markStep('opening','active');
             try{
                 const r=await fetch(BASE+'api/download',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({url})});
                 const d=await r.json();
-                if(!d.jobId){err.textContent='ত্রুটি';err.classList.add('show');btn.classList.remove('loading');btn.disabled=false;return}
+                if(!d.jobId){err.textContent='ত্রুটি';err.classList.add('show');btn.classList.remove('loading');btn.disabled=false;stepsEl.classList.remove('show');return}
                 pollStatus(d.jobId);
-            }catch(e){err.textContent='সংযোগে সমস্যা: '+e.message;err.classList.add('show');btn.classList.remove('loading');btn.disabled=false}
+            }catch(e){err.textContent='সংযোগে সমস্যা: '+e.message;err.classList.add('show');btn.classList.remove('loading');btn.disabled=false;stepsEl.classList.remove('show')}
         }
         async function pollStatus(jobId){
             try{
                 const r=await fetch(BASE+'api/status/'+jobId);
                 const j=await r.json();
                 bar.style.width=j.progress+'%';
-                ptxt.textContent=j.text;
+                const t=j.text||'';
+                if(t.includes('খোলা')){markStep('opening','done',t);markStep('reading','active')}
+                else if(t.includes('পড়া')){markStep('reading','done',t);markStep('found','active')}
+                else if(t.includes('পাওয়া গেছে')){markStep('found','done',t);markStep('scanning','active')}
+                else if(t.includes('পেজ')&&t.includes('OK')){markStep('scanning','active',t)}
+                else if(t.includes('PDF তৈরি')){markStep('scanning','done');markStep('pdf_start','done',t);markStep('pdf_progress','active')}
+                else if(t.includes('PDF')&&t.includes('/')){markStep('pdf_progress','active',t)}
                 if(j.status==='done'){
+                    markStep('done','done',j.text);
                     btn.classList.remove('loading');btn.disabled=false;
                     meta.textContent=j.text;
                     link.href=BASE+'api/file/'+jobId;
-                    ok.classList.add('show');prog.classList.remove('show');
+                    ok.classList.add('show');
                 }else if(j.status==='error'){
                     err.textContent=j.text;err.classList.add('show');
-                    btn.classList.remove('loading');btn.disabled=false;prog.classList.remove('show');
+                    btn.classList.remove('loading');btn.disabled=false;
                 }else{
                     setTimeout(()=>pollStatus(jobId),1500);
                 }
