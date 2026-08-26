@@ -67,6 +67,7 @@
         <p class="ft">ব্রাউজার বন্ধ করলেও process চলবে server-এ</p>
     </div>
     <script>
+        const BASE=(location.pathname.replace(/\/+$/,'/')||'/');
         const urlEl=document.getElementById('url'),btn=document.getElementById('btn'),prog=document.getElementById('prog'),bar=document.getElementById('bar'),ptxt=document.getElementById('ptxt'),err=document.getElementById('err'),ok=document.getElementById('ok'),meta=document.getElementById('meta'),link=document.getElementById('link');
         urlEl.addEventListener('keydown',e=>{if(e.key==='Enter')go()});
         function reset(){btn.classList.remove('loading');btn.disabled=false;prog.classList.remove('show');err.classList.remove('show');ok.classList.remove('show');bar.style.width='0%';ptxt.textContent=''}
@@ -76,22 +77,22 @@
             if(!url.includes('scribd.com')){err.textContent='Scribd URL দিন';err.classList.add('show');return}
             reset();btn.classList.add('loading');btn.disabled=true;prog.classList.add('show');ptxt.textContent='শুরু হচ্ছে...';
             try{
-                const r=await fetch('/api/download',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({url})});
+                const r=await fetch(BASE+'api/download',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({url})});
                 const d=await r.json();
                 if(!d.jobId){err.textContent='ত্রুটি';err.classList.add('show');btn.classList.remove('loading');btn.disabled=false;return}
                 pollStatus(d.jobId);
-            }catch(e){err.textContent='সংযোগে সমস্যা';err.classList.add('show');btn.classList.remove('loading');btn.disabled=false}
+            }catch(e){err.textContent='সংযোগে সমস্যা: '+e.message;err.classList.add('show');btn.classList.remove('loading');btn.disabled=false}
         }
         async function pollStatus(jobId){
             try{
-                const r=await fetch('/api/status/'+jobId);
+                const r=await fetch(BASE+'api/status/'+jobId);
                 const j=await r.json();
                 bar.style.width=j.progress+'%';
                 ptxt.textContent=j.text;
                 if(j.status==='done'){
                     btn.classList.remove('loading');btn.disabled=false;
                     meta.textContent=j.text;
-                    link.href='/api/file/'+jobId;
+                    link.href=BASE+'api/file/'+jobId;
                     ok.classList.add('show');prog.classList.remove('show');
                 }else if(j.status==='error'){
                     err.textContent=j.text;err.classList.add('show');
