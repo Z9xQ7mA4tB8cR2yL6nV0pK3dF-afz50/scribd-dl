@@ -87,11 +87,12 @@
         const BASE=(location.pathname.replace(/\/+$/,'/')||'/');
         const urlEl=document.getElementById('url'),btn=document.getElementById('btn'),stepsEl=document.getElementById('steps'),bar=document.getElementById('bar'),err=document.getElementById('err'),ok=document.getElementById('ok'),meta=document.getElementById('meta'),link=document.getElementById('link');
         const STEPS=['opening','reading','found','scanning','pdf_start','pdf_progress','done'];
+        let currentStepIdx=-1;
         urlEl.addEventListener('keydown',e=>{if(e.key==='Enter')go()});
         function reset(){
             btn.classList.remove('loading');btn.disabled=false;
             stepsEl.classList.remove('show');err.classList.remove('show');ok.classList.remove('show');
-            bar.style.width='0%';
+            bar.style.width='0%';currentStepIdx=-1;
             STEPS.forEach(s=>{
                 const el=document.querySelector('[data-step="'+s+'"]');
                 el.className='st';
@@ -100,20 +101,34 @@
                 if(sub)sub.textContent='';
             });
         }
-        function markStep(name,status,text){
-            const el=document.querySelector('[data-step="'+name+'"]');
-            if(!el)return;
-            el.className='st '+(status==='done'?'done':status==='active'?'active':'');
-            el.querySelector('.st-icon').innerHTML=status==='done'?'&#10003;':status==='error'?'&#10007;':'&#9675;';
-            const sub=document.getElementById('sub-'+name);
-            if(sub&&text)sub.textContent=text;
+        function advanceTo(stepName,text){
+            const idx=STEPS.indexOf(stepName);
+            if(idx<0)return;
+            for(let i=0;i<idx;i++){
+                const el=document.querySelector('[data-step="'+STEPS[i]+'"]');
+                if(!el.classList.contains('done')){
+                    el.className='st done';
+                    el.querySelector('.st-icon').innerHTML='&#10003;';
+                }
+            }
+            const cur=document.querySelector('[data-step="'+stepName+'"]');
+            cur.className='st active';
+            cur.querySelector('.st-icon').innerHTML='&#9675;';
+            if(text){const sub=document.getElementById('sub-'+stepName);if(sub)sub.textContent=text}
+            currentStepIdx=idx;
+        }
+        function markDone(stepName,text){
+            const el=document.querySelector('[data-step="'+stepName+'"]');
+            el.className='st done';
+            el.querySelector('.st-icon').innerHTML='&#10003;';
+            if(text){const sub=document.getElementById('sub-'+stepName);if(sub)sub.textContent=text}
         }
         async function go(){
             const url=urlEl.value.trim();
             if(!url){err.textContent='URL দিন';err.classList.add('show');return}
             if(!url.includes('scribd.com')){err.textContent='Scribd URL দিন';err.classList.add('show');return}
             reset();btn.classList.add('loading');btn.disabled=true;stepsEl.classList.add('show');
-            markStep('opening','active');
+            advanceTo('opening');
             try{
                 const r=await fetch(BASE+'api/download',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({url})});
                 const d=await r.json();
@@ -127,14 +142,14 @@
                 const j=await r.json();
                 bar.style.width=j.progress+'%';
                 const t=j.text||'';
-                if(t.includes('খোলা')){markStep('opening','done',t);markStep('reading','active')}
-                else if(t.includes('পড়া')){markStep('reading','done',t);markStep('found','active')}
-                else if(t.includes('পাওয়া গেছে')){markStep('found','done',t);markStep('scanning','active')}
-                else if(t.includes('পেজ')&&t.includes('OK')){markStep('scanning','active',t)}
-                else if(t.includes('PDF তৈরি')){markStep('scanning','done');markStep('pdf_start','done',t);markStep('pdf_progress','active')}
-                else if(t.includes('PDF')&&t.includes('/')){markStep('pdf_progress','active',t)}
+                if(t.includes('খোলা')&&!t.includes('পড়া')){advanceTo('opening',t)}
+                else if(t.includes('পড়া')){advanceTo('reading',t)}
+                else if(t.includes('পাওয়া গেছে')||t.includes('পেজ')){advanceTo('found',t)}
+                else if(t.includes('OK')||t.includes('fail')||t.includes('skip')){advanceTo('scanning',t)}
+                else if(t.includes('PDF তৈরি')&&!t.includes('/')){advanceTo('pdf_start',t)}
+                else if(t.includes('PDF')&&t.includes('/')){advanceTo('pdf_progress',t)}
                 if(j.status==='done'){
-                    markStep('done','done',j.text);
+                    markDone('done',j.text);bar.style.width='100%';
                     btn.classList.remove('loading');btn.disabled=false;
                     meta.textContent=j.text;
                     link.href=BASE+'api/file/'+jobId;
