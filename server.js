@@ -8,6 +8,7 @@ app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
 const jobs = new Map();
+const browsers = new Map();
 function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
 
 app.get('/api/health', (req, res) => res.json({ status: 'ok' }));
@@ -30,6 +31,20 @@ app.get('/api/status/:jobId', (req, res) => {
   res.json(job);
 });
 
+app.post('/api/cancel/:jobId', (req, res) => {
+  const jobId = req.params.jobId;
+  const job = jobs.get(jobId);
+  if (!job) return res.status(404).json({ error: 'Job not found' });
+  const browser = browsers.get(jobId);
+  if (browser) {
+    browser.close().catch(() => {});
+    browsers.delete(jobId);
+  }
+  job.status = 'cancelled';
+  job.text = 'বাতিল করা হয়েছে';
+  res.json({ ok: true });
+});
+
 app.get('/api/file/:jobId', (req, res) => {
   const job = jobs.get(req.params.jobId);
   if (!job || !job.fileId) return res.status(404).json({ error: 'File not ready' });
@@ -47,31 +62,37 @@ async function processDocument(jobId, url) {
   try {
     job.status = 'processing';
     job.text = 'ব্রাউজার চালু হচ্ছে...';
+    job.step = 'browser';
 
     browser = await puppeteer.launch({
       headless: 'new',
-      args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage', '--disable-gpu']
+      args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage', '--disable-gpu',
+             '--disable-blink-features=AutomationControlled']
     });
+    browsers.set(jobId, browser);
 
     const pg = await browser.newPage();
     await pg.setViewport({ width: 1280, height: 900 });
-    await pg.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36');
+
+    await pg.evaluateOnNewDocument(() => {
+      Object.defineProperty(navigator, 'webdriver', { get: () => false });
+      delete navigator.__proto__.webdriver;
+    });
+
+    await pg.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36');
     pg.setDefaultNavigationTimeout(60000);
     pg.setDefaultTimeout(60000);
 
     let finalUrl = url.trim();
     if (!finalUrl.startsWith('http')) finalUrl = 'https://' + finalUrl;
-    const docMatch = finalUrl.match(/(?:doc|document|embeds|read|book|presentation)\/(\d+)/);
-    const docId = docMatch ? docMatch[1] : null;
-    if (docId && !finalUrl.includes('/embeds/')) {
-      finalUrl = `https://www.scribd.com/embeds/${docId}/content?start_page=1&view_mode=scroll&access_key=key-1`;
-    }
 
     job.text = 'Scribd পেজ খোলা হচ্ছে...';
+    job.step = 'opening';
     await pg.goto(finalUrl, { waitUntil: 'networkidle2', timeout: 60000 });
     await sleep(5000);
 
     job.text = 'ডকুমেন্ট পড়া হচ্ছে...';
+    job.step = 'reading';
     const docTitle = await pg.evaluate(() => {
       const el = document.querySelector('[data-e2e="doc_page_title"]') || document.querySelector('.title') || document.querySelector('title');
       return el ? el.innerText.trim() : 'Scribd_Document';
@@ -84,57 +105,79 @@ async function processDocument(jobId, url) {
     if (totalPages === 0) throw new Error('কোনো পেজ পাওয়া যায়নি');
 
     job.text = `${docTitle} — ${totalPages} পেজ পাওয়া গেছে`;
+    job.step = 'found';
     job.progress = 5;
 
+    job.text = 'সব পেজ লোড হচ্ছে...';
+    job.step = 'scanning';
+    for (let i = 0; i < totalPages; i++) {
+      await pg.evaluate((idx) => {
+        const pages = document.querySelectorAll("div.outer_page_container div[id^='outer_page_']");
+        if (pages[idx]) pages[idx].scrollIntoView({ behavior: 'instant', block: 'start' });
+      }, i);
+      await sleep(800);
+    }
+    await sleep(2000);
+
+    job.text = 'পেজ ক্যাপচার হচ্ছে...';
+    job.step = 'scanning';
     const pageImages = [];
     const sliceSize = 85 / Math.max(totalPages, 1);
 
     for (let i = 0; i < totalPages; i++) {
       job.text = `পেজ ${i + 1}/${totalPages}...`;
+      job.step = 'scanning';
       job.progress = 5 + Math.round(i * sliceSize);
 
       await pg.evaluate((idx) => {
         const pages = document.querySelectorAll("div.outer_page_container div[id^='outer_page_']");
         if (pages[idx]) pages[idx].scrollIntoView({ behavior: 'instant', block: 'start' });
       }, i);
-      await sleep(1500);
+      await sleep(500);
 
       const dims = await pg.evaluate((idx) => {
         const pages = document.querySelectorAll("div.outer_page_container div[id^='outer_page_']");
         const page = pages[idx];
         if (!page) return null;
+
+        const pageRect = page.getBoundingClientRect();
+        const renderX = Math.round(pageRect.x);
+        const renderY = Math.round(pageRect.y);
+        const renderW = Math.round(pageRect.width);
+        const renderH = Math.round(pageRect.height);
+
+        if (renderW < 50 || renderH < 50) return null;
+
         const imgs = Array.from(page.querySelectorAll('img.absimg, img[src*="html.scribdassets"], img.orig_image'))
           .filter(img => img.getBoundingClientRect().width > 50 && img.getBoundingClientRect().height > 50);
-        if (imgs.length === 0) return null;
-        const img = imgs[0];
-        return {
-          imgW: img.naturalWidth || 0, imgH: img.naturalHeight || 0,
-          renderW: Math.round(img.getBoundingClientRect().width),
-          renderH: Math.round(img.getBoundingClientRect().height),
-          renderX: Math.round(img.getBoundingClientRect().x),
-          renderY: Math.round(img.getBoundingClientRect().y)
-        };
+
+        let origW = renderW;
+        let origH = renderH;
+        if (imgs.length > 0 && imgs[0].naturalWidth > 10) {
+          origW = imgs[0].naturalWidth;
+          origH = imgs[0].naturalHeight;
+        }
+
+        return { origW, origH, renderW, renderH, renderX, renderY };
       }, i);
 
       if (!dims) continue;
 
-      const origW = dims.imgW > 10 ? dims.imgW : dims.renderW;
-      const origH = dims.imgH > 10 ? dims.imgH : dims.renderH;
-
       try {
         const ss = await pg.screenshot({
           type: 'jpeg',
-          quality: 75,
+          quality: 80,
           clip: { x: dims.renderX, y: dims.renderY, width: dims.renderW, height: dims.renderH }
         });
         const dataUrl = 'data:image/jpeg;base64,' + ss.toString('base64');
-        pageImages.push({ dataUrl, width: origW, height: origH });
+        pageImages.push({ dataUrl, width: dims.origW, height: dims.origH });
       } catch (e) {}
     }
 
     if (pageImages.length === 0) throw new Error('কোনো পেজ capture হয়নি');
 
     job.text = `PDF তৈরি (${pageImages.length} পেজ)...`;
+    job.step = 'pdf_start';
     job.progress = 92;
 
     const first = pageImages[0];
@@ -142,6 +185,9 @@ async function processDocument(jobId, url) {
     const pdf = new jsPDF({ orientation: orient, unit: 'px', format: [first.width, first.height], hotfixes: ['px_scaling'] });
 
     for (let i = 0; i < pageImages.length; i++) {
+      job.step = 'pdf_progress';
+      job.text = `PDF তৈরি হচ্ছে (${i + 1}/${pageImages.length})...`;
+      job.progress = 92 + Math.round((i / pageImages.length) * 6);
       const img = pageImages[i];
       const p = img.width > img.height ? 'l' : 'p';
       if (i === 0) {
@@ -150,7 +196,6 @@ async function processDocument(jobId, url) {
         pdf.addPage([img.width, img.height], p);
         pdf.addImage(img.dataUrl, 'JPEG', 0, 0, img.width, img.height, undefined, 'FAST');
       }
-      job.progress = 92 + Math.round((i / pageImages.length) * 6);
     }
 
     const safeName = docTitle.replace(/[^a-zA-Z0-9\s\-_]/g, '').trim().replace(/\s+/g, '_') || 'Scribd_Document';
@@ -159,6 +204,7 @@ async function processDocument(jobId, url) {
     jobs.set(fileKey, { buffer: pdfBuffer, filename: safeName + '.pdf' });
 
     job.status = 'done';
+    job.step = 'done';
     job.progress = 100;
     job.text = `${pageImages.length} পেজ • ${(pdfBuffer.length / 1024 / 1024).toFixed(1)}MB`;
     job.fileId = jobId;
@@ -173,6 +219,7 @@ async function processDocument(jobId, url) {
     job.status = 'error';
     job.text = error.message;
   } finally {
+    browsers.delete(jobId);
     if (browser) await browser.close().catch(() => {});
   }
 }

@@ -7,47 +7,70 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
         *{margin:0;padding:0;box-sizing:border-box}
-        body{font-family:'Inter',system-ui,sans-serif;background:#0a0a0f;color:#e4e4e7;min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px}
-        .c{width:100%;max-width:520px}
-        .logo{text-align:center;margin-bottom:36px}
-        .logo-icon{width:60px;height:60px;background:linear-gradient(135deg,#8b5cf6,#6d28d9);border-radius:14px;display:inline-flex;align-items:center;justify-content:center;font-size:26px;font-weight:700;color:white;margin-bottom:14px;box-shadow:0 8px 32px rgba(139,92,246,0.3)}
-        h1{font-size:22px;font-weight:700;color:#e4e4e7}
+        body{font-family:'Inter',system-ui,sans-serif;background:#0a0a0f;color:#e4e4e7;min-height:100vh;display:flex;flex-direction:column;align-items:center;padding:24px 16px}
+        .c{width:100%;max-width:480px;margin-top:40px}
+        .logo{text-align:center;margin-bottom:32px}
+        .logo-icon{width:56px;height:56px;background:linear-gradient(135deg,#8b5cf6,#6d28d9);border-radius:14px;display:inline-flex;align-items:center;justify-content:center;font-size:24px;font-weight:700;color:white;margin-bottom:12px;box-shadow:0 8px 32px rgba(139,92,246,.3)}
+        h1{font-size:20px;font-weight:700;color:#e4e4e7}
         .sub{color:#71717a;font-size:13px;margin-top:4px}
-        .card{background:#18181b;border:1px solid #27272a;border-radius:14px;padding:24px}
-        input{width:100%;padding:13px 16px;background:#09090b;border:1px solid #27272a;border-radius:10px;color:#e4e4e7;font-size:14px;font-family:inherit;outline:none;transition:border-color .2s}
+        .card{background:#18181b;border:1px solid #27272a;border-radius:16px;padding:20px}
+        .input-group{display:flex;gap:8px;margin-bottom:14px}
+        .input-wrap{flex:1;position:relative}
+        input{width:100%;padding:14px 16px;background:#09090b;border:1px solid #27272a;border-radius:10px;color:#e4e4e7;font-size:14px;font-family:inherit;outline:none;transition:border-color .2s}
         input:focus{border-color:#8b5cf6}
         input::placeholder{color:#52525b}
-        .btn{width:100%;padding:13px;margin-top:12px;background:linear-gradient(135deg,#8b5cf6,#6d28d9);border:none;border-radius:10px;color:white;font-size:15px;font-weight:600;font-family:inherit;cursor:pointer;transition:all .2s;display:flex;align-items:center;justify-content:center;gap:8px}
-        .btn:hover:not(:disabled){transform:translateY(-1px);box-shadow:0 6px 20px rgba(139,92,246,0.35)}
+        .paste-btn{padding:14px 20px;background:#27272a;border:1px solid #3f3f46;border-radius:10px;color:#d4d4d8;font-size:14px;font-weight:500;font-family:inherit;cursor:pointer;transition:all .15s;white-space:nowrap;display:flex;align-items:center;gap:6px}
+        .paste-btn:hover{background:#3f3f46;color:#fff}
+        .paste-btn:active{transform:scale(.97)}
+        .btn-row{display:flex;gap:10px}
+        .btn-row.hide{display:none}
+        .btn{flex:1;padding:14px 0;background:linear-gradient(135deg,#8b5cf6,#6d28d9);border:none;border-radius:10px;color:#fff;font-size:15px;font-weight:600;font-family:inherit;cursor:pointer;transition:all .15s;display:flex;align-items:center;justify-content:center;gap:8px}
+        .btn:hover:not(:disabled){box-shadow:0 6px 20px rgba(139,92,246,.35)}
+        .btn:active:not(:disabled){transform:scale(.98)}
         .btn:disabled{opacity:.5;cursor:not-allowed}
-        .btn .sp{width:16px;height:16px;border:2px solid rgba(255,255,255,.3);border-top-color:white;border-radius:50%;animation:sp .7s linear infinite;display:none}
-        .btn.loading .sp{display:block}.btn.loading .lb{display:none}
+        .btn .sp{width:16px;height:16px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:sp .7s linear infinite;display:none}
+        .btn.loading .sp{display:block}
+        .cancel-btn{padding:14px 20px;background:#dc2626;border:none;border-radius:10px;color:#fff;font-size:14px;font-weight:600;font-family:inherit;cursor:pointer;transition:all .15s;display:none}
+        .cancel-btn.show{display:block}
+        .cancel-btn:hover{background:#b91c1c}
+        .cancel-btn:active{transform:scale(.97)}
         @keyframes sp{to{transform:rotate(360deg)}}
-        .steps{margin-top:20px;display:none}.steps.show{display:block}
-        .st{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid #27272a;font-size:13px;color:#52525b}
+        .steps{margin-top:16px;display:none}.steps.show{display:block}
+        .bar-w{background:#27272a;border-radius:4px;height:4px;overflow:hidden;margin-bottom:16px}
+        .bar{height:100%;background:linear-gradient(90deg,#8b5cf6,#a78bfa);border-radius:4px;width:0%;transition:width .3s}
+        .st{display:flex;align-items:center;gap:12px;padding:10px 0;font-size:13px;color:#52525b;border-bottom:1px solid #1e1e22}
         .st:last-child{border-bottom:none}
         .st.active{color:#e4e4e7}
         .st.done{color:#4ade80}
         .st.error{color:#f87171}
-        .st-icon{width:20px;height:20px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;flex-shrink:0;background:#27272a;color:#52525b}
-        .st.active .st-icon{background:rgba(139,92,246,.2);color:#8b5cf6;animation:pulse 1.5s infinite}
-        .st.done .st-icon{background:rgba(34,197,94,.2);color:#4ade80}
-        .st.error .st-icon{background:rgba(239,68,68,.2);color:#f87171}
-        .st-label{flex:1}
-        .st-sub{font-size:11px;color:#71717a;margin-top:1px}
-        @keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}}
-        .bar-w{background:#27272a;border-radius:6px;height:6px;overflow:hidden;margin-bottom:16px}
-        .bar{height:100%;background:linear-gradient(90deg,#8b5cf6,#a78bfa);border-radius:6px;width:0%;transition:width .3s}
-        .err{margin-top:16px;background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.2);border-radius:10px;padding:14px;display:none;font-size:13px;color:#f87171}
+        .st-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;transition:all .3s}
+        .st-dot.waiting{background:#3f3f46}
+        .st.active .st-dot{background:#8b5cf6;box-shadow:0 0 8px rgba(139,92,246,.5);animation:pulse 1.2s infinite}
+        .st.done .st-dot{background:#4ade80}
+        .st.error .st-dot{background:#f87171}
+        .st-spin{width:18px;height:18px;border:2px solid rgba(139,92,246,.25);border-top-color:#8b5cf6;border-radius:50%;flex-shrink:0;animation:sp .7s linear infinite;display:none}
+        .st.active .st-spin{display:block}
+        .st.active .st-dot{display:none}
+        .st.active{color:#c4b5fd}
+        @keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.5;transform:scale(.8)}}
+        .st-name{flex:1}
+        .st-progress{text-align:center;font-size:11px;color:#71717a;margin-top:2px;display:none}
+        .st.active .st-progress{display:block}
+        .status-text{text-align:center;font-size:12px;color:#71717a;margin-top:12px;display:none}
+        .status-text.show{display:block}
+        .err{margin-top:14px;background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.15);border-radius:10px;padding:14px;display:none;font-size:13px;color:#f87171;text-align:center}
         .err.show{display:block}
-        .ok{margin-top:16px;background:rgba(34,197,94,.08);border:1px solid rgba(34,197,94,.2);border-radius:10px;padding:18px;display:none;text-align:center}
+        .ok{margin-top:14px;background:rgba(34,197,94,.06);border:1px solid rgba(34,197,94,.15);border-radius:14px;padding:24px 20px;display:none;text-align:center}
         .ok.show{display:block}
-        .ok .ck{font-size:28px;margin-bottom:6px}
-        .ok .info{color:#4ade80;font-size:14px;font-weight:600}
+        .ok .ck{font-size:32px;margin-bottom:8px}
+        .ok .info{color:#4ade80;font-size:15px;font-weight:600}
         .ok .meta{color:#71717a;font-size:12px;margin-top:4px}
-        .ok a{display:inline-block;margin-top:14px;padding:10px 28px;background:#22c55e;color:#000;text-decoration:none;border-radius:8px;font-weight:600;font-size:14px}
-        .ok a:hover{background:#16a34a}
-        .ft{text-align:center;margin-top:28px;font-size:11px;color:#3f3f46}
+        .ok .dl-box{margin-top:16px;background:linear-gradient(135deg,#8b5cf6,#6d28d9);border-radius:12px;padding:14px;box-shadow:0 6px 20px rgba(139,92,246,.3)}
+        .ok .dl-btn{display:block;color:#fff;text-decoration:none;font-weight:600;font-size:15px;transition:all .15s}
+        .ok .dl-btn:active{transform:scale(.98)}
+        .ok .new-btn{display:block;margin:14px auto 0;width:fit-content;padding:12px 26px;background:transparent;border:1px solid #3f3f46;border-radius:999px;color:#a1a1aa;font-size:13px;font-family:inherit;cursor:pointer;transition:all .15s;text-align:center}
+        .ok .new-btn:hover{background:#27272a;color:#e4e4e7}
+        .ft{text-align:center;margin-top:24px;font-size:11px;color:#3f3f46}
     </style>
 </head>
 <body>
@@ -58,111 +81,188 @@
             <p class="sub">Scribd URL দিন, PDF পান</p>
         </div>
         <div class="card">
-            <input type="text" id="url" placeholder="https://www.scribd.com/..." autofocus>
-            <button class="btn" id="btn" onclick="go()">
-                <div class="sp"></div>
-                <span class="lb">ডাউনলোড করুন</span>
-            </button>
+            <div class="input-group">
+                <div class="input-wrap">
+                    <input type="text" id="url" placeholder="https://www.scribd.com/..." autofocus>
+                </div>
+                <button class="paste-btn" onclick="pasteClip()">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+                    Paste
+                </button>
+            </div>
+            <div class="btn-row" id="btnRow">
+                <button class="btn" id="btn" onclick="go()">
+                    <div class="sp"></div>
+                    <span class="lb">ডাউনলোড করুন</span>
+                </button>
+                <button class="cancel-btn" id="cancelBtn" onclick="cancelJob()">বাতিল</button>
+            </div>
             <div class="steps" id="steps">
                 <div class="bar-w"><div class="bar" id="bar"></div></div>
-                <div class="st" data-step="opening"><div class="st-icon">&#9675;</div><div class="st-label"><div>পেজ খোলা হচ্ছে</div><div class="st-sub" id="sub-opening"></div></div></div>
-                <div class="st" data-step="reading"><div class="st-icon">&#9675;</div><div class="st-label"><div>ডকুমেন্ট পড়া হচ্ছে</div><div class="st-sub" id="sub-reading"></div></div></div>
-                <div class="st" data-step="found"><div class="st-icon">&#9675;</div><div class="st-label"><div>ডকুমেন্ট পাওয়া গেছে</div><div class="st-sub" id="sub-found"></div></div></div>
-                <div class="st" data-step="scanning"><div class="st-icon">&#9675;</div><div class="st-label"><div>পেজ স্ক্যান করা হচ্ছে</div><div class="st-sub" id="sub-scanning"></div></div></div>
-                <div class="st" data-step="pdf_start"><div class="st-icon">&#9675;</div><div class="st-label"><div>PDF তৈরি শুরু</div><div class="st-sub" id="sub-pdf_start"></div></div></div>
-                <div class="st" data-step="pdf_progress"><div class="st-icon">&#9675;</div><div class="st-label"><div>PDF তৈরি হচ্ছে</div><div class="st-sub" id="sub-pdf_progress"></div></div></div>
-                <div class="st" data-step="done"><div class="st-icon">&#9675;</div><div class="st-label"><div>সম্পন্ন</div><div class="st-sub" id="sub-done"></div></div></div>
+                <div class="st" data-step="browser"><div class="st-spin"></div><div class="st-dot waiting"></div><div class="st-name"><div>ব্রাউজার চালু হচ্ছে</div><div class="st-progress" id="sub-browser"></div></div></div>
+                <div class="st" data-step="opening"><div class="st-spin"></div><div class="st-dot waiting"></div><div class="st-name"><div>পেজ খোলা হচ্ছে</div><div class="st-progress" id="sub-opening"></div></div></div>
+                <div class="st" data-step="reading"><div class="st-spin"></div><div class="st-dot waiting"></div><div class="st-name"><div>ডকুমেন্ট পড়া হচ্ছে</div><div class="st-progress" id="sub-reading"></div></div></div>
+                <div class="st" data-step="found"><div class="st-spin"></div><div class="st-dot waiting"></div><div class="st-name"><div>ডকুমেন্ট পাওয়া গেছে</div><div class="st-progress" id="sub-found"></div></div></div>
+                <div class="st" data-step="scanning"><div class="st-spin"></div><div class="st-dot waiting"></div><div class="st-name"><div>পেজ স্ক্যান করা হচ্ছে</div><div class="st-progress" id="sub-scanning"></div></div></div>
+                <div class="st" data-step="pdf_start"><div class="st-spin"></div><div class="st-dot waiting"></div><div class="st-name"><div>PDF তৈরি শুরু</div><div class="st-progress" id="sub-pdf_start"></div></div></div>
+                <div class="st" data-step="pdf_progress"><div class="st-spin"></div><div class="st-dot waiting"></div><div class="st-name"><div>PDF তৈরি হচ্ছে</div><div class="st-progress" id="sub-pdf_progress"></div></div></div>
+                <div class="st" data-step="done"><div class="st-spin"></div><div class="st-dot waiting"></div><div class="st-name"><div>সম্পন্ন</div><div class="st-progress" id="sub-done"></div></div></div>
             </div>
+            <div class="status-text" id="statusText"></div>
             <div class="err" id="err"></div>
             <div class="ok" id="ok">
                 <div class="ck">&#10003;</div>
                 <div class="info">PDF তৈরি সম্পন্ন!</div>
                 <div class="meta" id="meta"></div>
-                <a id="link" href="#" download>ডাউনলোড PDF</a>
+                <div class="dl-box">
+                    <a id="link" class="dl-btn" href="#" download>ডাউনলোড PDF</a>
+                </div>
+                <button class="new-btn" onclick="freshStart()">নতুন ডকুমেন্ট ডাউনলোড করুন</button>
             </div>
         </div>
         <p class="ft">ব্রাউজার বন্ধ করলেও process চলবে server-এ</p>
     </div>
     <script>
         const BASE=(location.pathname.replace(/\/+$/,'/')||'/');
-        const urlEl=document.getElementById('url'),btn=document.getElementById('btn'),stepsEl=document.getElementById('steps'),bar=document.getElementById('bar'),err=document.getElementById('err'),ok=document.getElementById('ok'),meta=document.getElementById('meta'),link=document.getElementById('link');
-        const STEPS=['opening','reading','found','scanning','pdf_start','pdf_progress','done'];
-        let currentStepIdx=-1;
+        const urlEl=document.getElementById('url'),btnRow=document.getElementById('btnRow'),btn=document.getElementById('btn'),cancelBtn=document.getElementById('cancelBtn'),stepsEl=document.getElementById('steps'),bar=document.getElementById('bar'),err=document.getElementById('err'),ok=document.getElementById('ok'),meta=document.getElementById('meta'),link=document.getElementById('link'),statusText=document.getElementById('statusText');
+        const STEPS=['browser','opening','reading','found','scanning','pdf_start','pdf_progress','done'];
+        let currentJobId=null;
+        let currentStep=null;
+
+        function stepFromText(t){
+            if(!t)return null;
+            if(t.includes('ব্রাউজার'))return 'browser';
+            if(t.includes('পেজ খোলা'))return 'opening';
+            if(t.includes('পড়া হচ্ছে'))return 'reading';
+            if(t.includes('পাওয়া গেছে'))return 'found';
+            if(t.includes('লোড হচ্ছে')||t.includes('ক্যাপচার')||t.match(/পেজ\s*\d/))return 'scanning';
+            if(t.includes('PDF তৈরি হচ্ছে')||(t.includes('PDF')&&t.includes('/')))return 'pdf_progress';
+            if(t.includes('PDF'))return 'pdf_start';
+            return null;
+        }
         urlEl.addEventListener('keydown',e=>{if(e.key==='Enter')go()});
+
+        async function pasteClip(){try{const t=await navigator.clipboard.readText();urlEl.value=t}catch(e){}}
+
         function reset(){
             btn.classList.remove('loading');btn.disabled=false;
+            btn.querySelector('.lb').textContent='ডাউনলোড করুন';
+            cancelBtn.classList.remove('show');
             stepsEl.classList.remove('show');err.classList.remove('show');ok.classList.remove('show');
-            bar.style.width='0%';currentStepIdx=-1;
+            statusText.classList.remove('show');statusText.textContent='';
+            bar.style.width='0%';
             STEPS.forEach(s=>{
-                const el=document.querySelector('[data-step="'+s+'"]');
-                el.className='st';
-                el.querySelector('.st-icon').innerHTML='&#9675;';
+                document.querySelector('[data-step="'+s+'"]').className='st';
                 const sub=document.getElementById('sub-'+s);
                 if(sub)sub.textContent='';
             });
         }
+
         function advanceTo(stepName,text){
             const idx=STEPS.indexOf(stepName);
             if(idx<0)return;
+            currentStep=stepName;
             for(let i=0;i<idx;i++){
                 const el=document.querySelector('[data-step="'+STEPS[i]+'"]');
-                if(!el.classList.contains('done')){
-                    el.className='st done';
-                    el.querySelector('.st-icon').innerHTML='&#10003;';
-                }
+                el.className='st done';
             }
             const cur=document.querySelector('[data-step="'+stepName+'"]');
             cur.className='st active';
-            cur.querySelector('.st-icon').innerHTML='&#9675;';
-            if(text){const sub=document.getElementById('sub-'+stepName);if(sub)sub.textContent=text}
-            currentStepIdx=idx;
+            if(text){statusText.textContent=text;statusText.classList.add('show')}
         }
-        function markDone(stepName,text){
+
+        function markDone(stepName){
             const el=document.querySelector('[data-step="'+stepName+'"]');
             el.className='st done';
-            el.querySelector('.st-icon').innerHTML='&#10003;';
-            if(text){const sub=document.getElementById('sub-'+stepName);if(sub)sub.textContent=text}
+            const sub=document.getElementById('sub-'+stepName);
+            if(sub)sub.textContent='';
         }
+
         async function go(){
             const url=urlEl.value.trim();
             if(!url){err.textContent='URL দিন';err.classList.add('show');return}
             if(!url.includes('scribd.com')){err.textContent='Scribd URL দিন';err.classList.add('show');return}
-            reset();btn.classList.add('loading');btn.disabled=true;stepsEl.classList.add('show');
-            advanceTo('opening');
+            reset();
+            btn.classList.add('loading');btn.disabled=true;
+            btn.querySelector('.lb').textContent='ডাউনলোড হচ্ছে...';
+            cancelBtn.classList.add('show');
+            stepsEl.classList.add('show');
+            advanceTo('browser');
             try{
                 const r=await fetch(BASE+'api/download',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({url})});
                 const d=await r.json();
-                if(!d.jobId){err.textContent='ত্রুটি';err.classList.add('show');btn.classList.remove('loading');btn.disabled=false;stepsEl.classList.remove('show');return}
+                if(!d.jobId){err.textContent='ত্রুটি';err.classList.add('show');btn.classList.remove('loading');btn.disabled=false;cancelBtn.classList.remove('show');stepsEl.classList.remove('show');return}
+                currentJobId=d.jobId;
                 pollStatus(d.jobId);
-            }catch(e){err.textContent='সংযোগে সমস্যা: '+e.message;err.classList.add('show');btn.classList.remove('loading');btn.disabled=false;stepsEl.classList.remove('show')}
+            }catch(e){err.textContent='সংযোগে সমস্যা: '+e.message;err.classList.add('show');btn.classList.remove('loading');btn.disabled=false;cancelBtn.classList.remove('show');stepsEl.classList.remove('show')}
         }
+
+        async function cancelJob(){
+            if(!currentJobId)return;
+            try{await fetch(BASE+'api/cancel/'+currentJobId,{method:'POST'})}catch(e){}
+            currentJobId=null;
+            btn.classList.remove('loading');btn.disabled=false;
+            btn.querySelector('.lb').textContent='ডাউনলোড করুন';
+            cancelBtn.classList.remove('show');
+            stepsEl.classList.remove('show');
+            statusText.classList.remove('show');
+            err.textContent='বাতিল করা হয়েছে';err.classList.add('show');
+        }
+
         async function pollStatus(jobId){
             try{
                 const r=await fetch(BASE+'api/status/'+jobId);
                 const j=await r.json();
                 bar.style.width=j.progress+'%';
                 const t=j.text||'';
-                if(t.includes('খোলা')&&!t.includes('পড়া')){advanceTo('opening',t)}
-                else if(t.includes('পড়া')){advanceTo('reading',t)}
-                else if(t.includes('পাওয়া গেছে')||t.includes('পেজ')){advanceTo('found',t)}
-                else if(t.includes('OK')||t.includes('fail')||t.includes('skip')){advanceTo('scanning',t)}
-                else if(t.includes('PDF তৈরি')&&!t.includes('/')){advanceTo('pdf_start',t)}
-                else if(t.includes('PDF')&&t.includes('/')){advanceTo('pdf_progress',t)}
+                if(t){statusText.textContent=t;statusText.classList.add('show')}
+                let step=j.step||stepFromText(t);
+                if(!step&&j.status==='processing'){
+                    if(j.progress>=92)step='pdf_progress';
+                    else if(j.progress>=85)step='pdf_start';
+                }
+                if(step==='pdf_start'&&j.progress>=92&&j.status==='processing')step='pdf_progress';
+                if(step)advanceTo(step,t);
                 if(j.status==='done'){
-                    markDone('done',j.text);bar.style.width='100%';
+                    advanceTo('done',j.text);
+                    markDone('done');bar.style.width='100%';
+                    statusText.classList.remove('show');
                     btn.classList.remove('loading');btn.disabled=false;
+                    btn.querySelector('.lb').textContent='ডাউনলোড করুন';
+                    cancelBtn.classList.remove('show');
                     meta.textContent=j.text;
                     link.href=BASE+'api/file/'+jobId;
                     ok.classList.add('show');
+                    currentJobId=null;
                 }else if(j.status==='error'){
                     err.textContent=j.text;err.classList.add('show');
                     btn.classList.remove('loading');btn.disabled=false;
+                    btn.querySelector('.lb').textContent='ডাউনলোড করুন';
+                    cancelBtn.classList.remove('show');
+                    statusText.classList.remove('show');
+                    if(currentStep){const el=document.querySelector('[data-step="'+currentStep+'"]');if(el)el.className='st error';}
+                    currentJobId=null;
+                }else if(j.status==='cancelled'){
+                    err.textContent='বাতিল করা হয়েছে';err.classList.add('show');
+                    btn.classList.remove('loading');btn.disabled=false;
+                    btn.querySelector('.lb').textContent='ডাউনলোড করুন';
+                    cancelBtn.classList.remove('show');
+                    statusText.classList.remove('show');
+                    currentJobId=null;
                 }else{
                     setTimeout(()=>pollStatus(jobId),1500);
                 }
             }catch(e){
                 setTimeout(()=>pollStatus(jobId),3000);
             }
+        }
+
+        function freshStart(){
+            ok.classList.remove('show');err.classList.remove('show');stepsEl.classList.remove('show');
+            statusText.classList.remove('show');
+            bar.style.width='0%';urlEl.value='';btn.classList.remove('loading');btn.disabled=false;
+            btn.querySelector('.lb').textContent='ডাউনলোড করুন';
+            cancelBtn.classList.remove('show');urlEl.focus();
         }
     </script>
 </body>
